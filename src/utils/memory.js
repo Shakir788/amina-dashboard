@@ -1,33 +1,61 @@
-const memoryStore = {};
+const { MongoClient } = require('mongodb');
 
-function saveMemory(userId, userMessage, aiReply) {
+let cachedClient = null;
+let cachedDb = null;
 
-    if (!memoryStore[userId]) {
-
-        memoryStore[userId] = [];
+async function connectToDatabase() {
+    if (cachedClient && cachedDb) {
+        return { client: cachedClient, db: cachedDb };
     }
 
-    memoryStore[userId].push({
-
-        user: userMessage,
-        ai: aiReply
+    const client = await MongoClient.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
     });
 
-    // last 10 chats only
+    const db = client.db();
+    cachedClient = client;
+    cachedDb = db;
+    return { client, db };
+}
 
-    if (memoryStore[userId].length > 10) {
+async function saveMemory(userId, messageLine) {
+    try {
+        const { db } = await connectToDatabase();
+        const collection = db.collection('chat_history');
 
-        memoryStore[userId].shift();
+        // Automatic Sliding Window: Hamesha last 10 messages hi bachenge
+        await collection.updateOne(
+            { userId: userId },
+            {
+                $push: {
+                    history: {
+                        $each: [messageLine],
+                        $slice: -10
+                    }
+                }
+            },
+            { upsert: true }
+        );
+    } catch (error) {
+        console.log('❌ DB Save Memory Error:', error);
     }
 }
 
-function getMemory(userId) {
+async function getMemory(userId) {
+    try {
+        const { db } = await connectToDatabase();
+        const collection = db.collection('chat_history');
 
-    return memoryStore[userId] || [];
+        const userDoc = await collection.findOne({ userId: userId });
+        return userDoc && userDoc.history ? userDoc.history : [];
+    } catch (error) {
+        console.log('❌ DB Get Memory Error:', error);
+        return [];
+    }
 }
 
 module.exports = {
-
     saveMemory,
     getMemory
 };
