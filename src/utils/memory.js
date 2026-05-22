@@ -1,61 +1,141 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient } =
+    require('mongodb');
 
-let cachedClient = null;
-let cachedDb = null;
+let client;
+let db;
+
+// =========================
+// CONNECT DATABASE
+// =========================
 
 async function connectToDatabase() {
-    if (cachedClient && cachedDb) {
-        return { client: cachedClient, db: cachedDb };
+
+    try {
+
+        if (db) {
+
+            return db;
+        }
+
+        client =
+            new MongoClient(
+                process.env.MONGODB_URI
+            );
+
+        await client.connect();
+
+        db = client.db(
+            'amina_clothing'
+        );
+
+        console.log(
+            '✅ MongoDB Connected'
+        );
+
+        return db;
+
+    } catch (error) {
+
+        console.log(
+            '❌ MongoDB Connection Error'
+        );
+
+        console.log(error);
     }
-
-    const client = await MongoClient.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
-
-    const db = client.db();
-    cachedClient = client;
-    cachedDb = db;
-    return { client, db };
 }
 
-async function saveMemory(userId, messageLine) {
-    try {
-        const { db } = await connectToDatabase();
-        const collection = db.collection('chat_history');
+// =========================
+// SAVE MEMORY
+// =========================
 
-        // Automatic Sliding Window: Hamesha last 10 messages hi bachenge
+async function saveMemory(
+    userId,
+    messageLine
+) {
+
+    try {
+
+        const db =
+            await connectToDatabase();
+
+        const collection =
+            db.collection(
+                'chat_history'
+            );
+
         await collection.updateOne(
-            { userId: userId },
+
+            {
+                userId
+            },
+
             {
                 $push: {
+
                     history: {
+
                         $each: [messageLine],
+
                         $slice: -10
                     }
                 }
             },
-            { upsert: true }
+
+            {
+                upsert: true
+            }
         );
+
     } catch (error) {
-        console.log('❌ DB Save Memory Error:', error);
+
+        console.log(
+            '❌ DB Save Memory Error'
+        );
+
+        console.log(error);
     }
 }
 
-async function getMemory(userId) {
-    try {
-        const { db } = await connectToDatabase();
-        const collection = db.collection('chat_history');
+// =========================
+// GET MEMORY
+// =========================
 
-        const userDoc = await collection.findOne({ userId: userId });
-        return userDoc && userDoc.history ? userDoc.history : [];
+async function getMemory(
+    userId
+) {
+
+    try {
+
+        const db =
+            await connectToDatabase();
+
+        const collection =
+            db.collection(
+                'chat_history'
+            );
+
+        const userDoc =
+            await collection.findOne({
+
+                userId
+            });
+
+        return userDoc?.history || [];
+
     } catch (error) {
-        console.log('❌ DB Get Memory Error:', error);
+
+        console.log(
+            '❌ DB Get Memory Error'
+        );
+
+        console.log(error);
+
         return [];
     }
 }
 
 module.exports = {
+
     saveMemory,
     getMemory
 };
