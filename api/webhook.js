@@ -3,7 +3,7 @@ const {
 } = require('../src/services/ai');
 
 const sendWhatsAppMessage =
-require('../src/services/whatsapp');
+    require('../src/services/whatsapp');
 
 module.exports = async function handler(req, res) {
 
@@ -13,9 +13,14 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'GET') {
 
-        const mode = req.query['hub.mode'];
-        const token = req.query['hub.verify_token'];
-        const challenge = req.query['hub.challenge'];
+        const mode =
+            req.query['hub.mode'];
+
+        const token =
+            req.query['hub.verify_token'];
+
+        const challenge =
+            req.query['hub.challenge'];
 
         if (
             mode &&
@@ -24,13 +29,19 @@ module.exports = async function handler(req, res) {
             token === process.env.VERIFY_TOKEN
         ) {
 
-            console.log('✅ WEBHOOK VERIFIED');
+            console.log(
+                '✅ WEBHOOK VERIFIED'
+            );
 
-            return res.status(200).send(challenge);
+            return res
+                .status(200)
+                .send(challenge);
 
         } else {
 
-            return res.sendStatus(403);
+            return res
+                .status(403)
+                .end();
         }
     }
 
@@ -53,11 +64,12 @@ module.exports = async function handler(req, res) {
 
                 if (message) {
 
-                    const from = message.from;
+                    const from =
+                        message.from;
 
-                    // ====================================
-                    // STOP SELF REPLY LOOP 😈
-                    // ====================================
+                    // =========================
+                    // STOP SELF REPLY LOOP
+                    // =========================
 
                     const businessNumber =
                         body.entry?.[0]
@@ -72,13 +84,24 @@ module.exports = async function handler(req, res) {
                             '⚠️ Ignoring self message'
                         );
 
-                        return res.sendStatus(200);
+                        return res
+                            .status(200)
+                            .end();
                     }
 
-                    // ====================================
+                    // =========================
+                    // USER MESSAGE
+                    // =========================
 
                     const userMessage =
                         message.text?.body || '';
+
+                    if (!userMessage) {
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
 
                     console.log(
                         '🔥 MESSAGE RECEIVED'
@@ -93,7 +116,7 @@ module.exports = async function handler(req, res) {
                     // =========================
 
                     const aiReply =
-                       await generateAIResponse(
+                        await generateAIResponse(
                             userMessage,
                             from
                         );
@@ -116,10 +139,14 @@ module.exports = async function handler(req, res) {
                     );
                 }
 
-                return res.sendStatus(200);
+                return res
+                    .status(200)
+                    .end();
             }
 
-            return res.sendStatus(404);
+            return res
+                .status(404)
+                .end();
 
         } catch (error) {
 
@@ -129,9 +156,13 @@ module.exports = async function handler(req, res) {
 
             console.log(error);
 
-            return res.sendStatus(500);
+            return res
+                .status(500)
+                .end();
         }
     }
 
-    return res.sendStatus(405);
+    return res
+        .status(405)
+        .end();
 }
