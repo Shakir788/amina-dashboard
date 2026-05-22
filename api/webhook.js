@@ -5,6 +5,18 @@ const {
 const sendWhatsAppMessage =
     require('../src/services/whatsapp');
 
+const {
+    enableHumanMode,
+    isHumanMode
+} = require('../src/services/takeover');
+
+// =========================
+// DUPLICATE MESSAGE PROTECTION
+// =========================
+
+const processedMessages =
+    new Set();
+
 module.exports = async function handler(req, res) {
 
     // =========================
@@ -62,14 +74,71 @@ module.exports = async function handler(req, res) {
                         ?.changes?.[0]
                         ?.value?.messages?.[0];
 
+                // =========================
+                // MESSAGE EXISTS
+                // =========================
+
                 if (message) {
+
+                    // =========================
+                    // IGNORE NON-TEXT EVENTS
+                    // =========================
+
+                    if (
+                        message.type !== 'text'
+                    ) {
+
+                        console.log(
+                            '⚠️ Non-text event ignored'
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    // =========================
+                    // DUPLICATE PROTECTION
+                    // =========================
+
+                    const messageId =
+                        message.id;
+
+                    if (
+                        processedMessages.has(
+                            messageId
+                        )
+                    ) {
+
+                        console.log(
+                            '⚠️ Duplicate message ignored'
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    processedMessages.add(
+                        messageId
+                    );
+
+                    // auto cleanup after 5 min
+
+                    setTimeout(() => {
+
+                        processedMessages.delete(
+                            messageId
+                        );
+
+                    }, 300000);
+
+                    // =========================
+                    // USER INFO
+                    // =========================
 
                     const from =
                         message.from;
-
-                    // =========================
-                    // STOP SELF REPLY LOOP
-                    // =========================
 
                     const businessNumber =
                         body.entry?.[0]
@@ -77,6 +146,10 @@ module.exports = async function handler(req, res) {
                             ?.value?.metadata
                             ?.display_phone_number
                             ?.replace(/\D/g, '');
+
+                    // =========================
+                    // STOP SELF REPLY LOOP
+                    // =========================
 
                     if (from === businessNumber) {
 
@@ -97,6 +170,70 @@ module.exports = async function handler(req, res) {
                         message.text?.body || '';
 
                     if (!userMessage) {
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    // =========================
+                    // HUMAN TAKEOVER KEYWORDS
+                    // =========================
+
+                    const lowerMessage =
+                        userMessage.toLowerCase();
+
+                    const takeoverKeywords = [
+
+                        'owner',
+                        'human',
+                        'agent',
+                        'real person',
+                        'support',
+                        'call',
+                        'problem',
+                        'issue',
+                        'complaint'
+                    ];
+
+                    const wantsHuman =
+                        takeoverKeywords.some(
+                            keyword =>
+                                lowerMessage.includes(
+                                    keyword
+                                )
+                        );
+
+                    if (wantsHuman) {
+
+                        enableHumanMode(from);
+
+                        await sendWhatsAppMessage(
+
+                            from,
+
+`Of course love ✨
+Our team will assist you personally very soon 🤍`
+                        );
+
+                        console.log(
+                            '🧑 Human takeover enabled'
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    // =========================
+                    // CHECK HUMAN MODE
+                    // =========================
+
+                    if (isHumanMode(from)) {
+
+                        console.log(
+                            '🧑 Human mode active'
+                        );
 
                         return res
                             .status(200)

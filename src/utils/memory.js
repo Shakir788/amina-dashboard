@@ -1,26 +1,33 @@
-const memory = {};
+const memoryStore = {};
 
-function saveMemory(user, message) {
+function saveMemory(userId, userMessage, aiReply) {
 
-    if (!memory[user]) {
+    if (!memoryStore[userId]) {
 
-        memory[user] = [];
+        memoryStore[userId] = [];
     }
 
-    memory[user].push(message);
+    memoryStore[userId].push({
 
-    if (memory[user].length > 10) {
+        user: userMessage,
+        ai: aiReply
+    });
 
-        memory[user].shift();
+    // last 10 chats only
+
+    if (memoryStore[userId].length > 10) {
+
+        memoryStore[userId].shift();
     }
 }
 
-function getMemory(user) {
+function getMemory(userId) {
 
-    return memory[user] || [];
+    return memoryStore[userId] || [];
 }
 
 module.exports = {
+
     saveMemory,
     getMemory
 };
