@@ -1,6 +1,11 @@
-const {
+import {
     GoogleGenerativeAI
-} = require("@google/generative-ai");
+} from "@google/generative-ai";
+
+import {
+    saveMemory,
+    getMemory
+} from "../utils/memory.js";
 
 const genAI =
     new GoogleGenerativeAI(
@@ -12,34 +17,80 @@ const model =
         model: "gemini-2.5-flash"
     });
 
-async function generateAIResponse(
-    userMessage
+export async function generateAIResponse(
+    userMessage,
+    userNumber
 ) {
 
     try {
 
+        // =========================
+        // GET USER MEMORY
+        // =========================
+
+        const previousMessages =
+            getMemory(userNumber);
+
+        const memoryText =
+            previousMessages.join('\n');
+
+        // =========================
+        // AI PROMPT
+        // =========================
+
         const prompt = `
 You are Amina,
-a stylish Moroccan clothing brand sales assistant.
+a beautiful and stylish Moroccan clothing brand assistant.
+
+Your personality:
+- feminine
+- elegant
+- warm
+- human-like
+- stylish
 
 Rules:
-- Talk naturally like a real girl
-- Friendly and modern tone
-- Keep replies short
 - Never say you are AI
-- Use elegant emojis
-- Reply in English
+- Keep replies short
+- Be natural
+- Use soft emojis
+- Act like a real sales girl
+- Remember previous conversation context
+
+Previous conversation:
+${memoryText}
 
 Customer:
 ${userMessage}
 `;
+
+        // =========================
+        // GEMINI RESPONSE
+        // =========================
 
         const result =
             await model.generateContent(
                 prompt
             );
 
-        return result.response.text();
+        const response =
+            result.response.text();
+
+        // =========================
+        // SAVE MEMORY
+        // =========================
+
+        saveMemory(
+            userNumber,
+            `Customer: ${userMessage}`
+        );
+
+        saveMemory(
+            userNumber,
+            `Amina: ${response}`
+        );
+
+        return response;
 
     } catch (error) {
 
@@ -49,9 +100,9 @@ ${userMessage}
 
         console.log(error);
 
-        return "Sorry love, something went wrong 💔";
+        return `
+Sorry love 💔
+Something went wrong.
+`;
     }
 }
-
-module.exports =
-    generateAIResponse;

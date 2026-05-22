@@ -1,112 +1,121 @@
-const generateAIResponse =
-    require('../src/services/ai');
+import { generateAIResponse } from '../src/services/ai.js';
+import { sendWhatsAppMessage } from '../src/services/whatsapp.js';
 
-const sendWhatsAppMessage =
-    require('../src/services/whatsapp');
+export default async function handler(req, res) {
 
-module.exports = async (req, res) => {
-
-    // ========================================
+    // =========================
     // WEBHOOK VERIFICATION
-    // ========================================
+    // =========================
 
     if (req.method === 'GET') {
 
-        const mode =
-            req.query['hub.mode'];
-
-        const token =
-            req.query['hub.verify_token'];
-
-        const challenge =
-            req.query['hub.challenge'];
+        const mode = req.query['hub.mode'];
+        const token = req.query['hub.verify_token'];
+        const challenge = req.query['hub.challenge'];
 
         if (
             mode &&
+            token &&
+            mode === 'subscribe' &&
             token === process.env.VERIFY_TOKEN
         ) {
 
-            console.log(
-                '✅ Webhook Verified'
-            );
+            console.log('✅ WEBHOOK VERIFIED');
 
             return res.status(200).send(challenge);
-        }
 
-        return res.sendStatus(403);
+        } else {
+
+            return res.sendStatus(403);
+        }
     }
 
-    // ========================================
+    // =========================
     // RECEIVE WHATSAPP MESSAGE
-    // ========================================
+    // =========================
 
     if (req.method === 'POST') {
 
         try {
 
-            console.log(
-                '🔥 MESSAGE RECEIVED'
-            );
-
             const body = req.body;
 
-            if (
-                body.object &&
-                body.entry &&
-                body.entry[0].changes &&
-                body.entry[0].changes[0].value.messages &&
-                body.entry[0].changes[0].value.messages[0]
-            ) {
+            if (body.object) {
 
                 const message =
-                    body.entry[0]
-                    .changes[0]
-                    .value
-                    .messages[0];
+                    body.entry?.[0]
+                        ?.changes?.[0]
+                        ?.value?.messages?.[0];
 
-                const from =
-                    message.from;
+                if (message) {
 
-                const userMessage =
-                    message.text?.body || '';
+                    const from = message.from;
 
-                if (!userMessage) {
+                    // ====================================
+                    // STOP SELF REPLY LOOP 😈
+                    // ====================================
 
-                    return res.sendStatus(200);
-                }
+                    const businessNumber =
+                        body.entry?.[0]
+                            ?.changes?.[0]
+                            ?.value?.metadata
+                            ?.display_phone_number
+                            ?.replace(/\D/g, '');
 
-                console.log(
-                    `📩 User: ${userMessage}`
-                );
+                    if (from === businessNumber) {
 
-                // ====================================
-                // AI RESPONSE
-                // ====================================
+                        console.log(
+                            '⚠️ Ignoring self message'
+                        );
 
-                const aiReply =
-                    await generateAIResponse(
-                        userMessage
+                        return res.sendStatus(200);
+                    }
+
+                    // ====================================
+
+                    const userMessage =
+                        message.text?.body || '';
+
+                    console.log(
+                        '🔥 MESSAGE RECEIVED'
                     );
 
-                console.log(
-                    `🤖 AI: ${aiReply}`
-                );
+                    console.log(
+                        `📩 User: ${userMessage}`
+                    );
 
-                // ====================================
-                // SEND REPLY
-                // ====================================
+                    // =========================
+                    // AI RESPONSE
+                    // =========================
 
-                await sendWhatsAppMessage(
-                    from,
-                    aiReply
-                );
+                    const aiReply =
+                       await generateAIResponse(
+                            userMessage,
+                            from
+                        );
 
-                console.log(
-                    '✅ Reply Sent'
-                );
+                    console.log(
+                        `🤖 AI: ${aiReply}`
+                    );
+
+                    // =========================
+                    // SEND WHATSAPP REPLY
+                    // =========================
+
+                    await sendWhatsAppMessage(
+                        from,
+                        aiReply
+                    );
+
+                    console.log(
+                        '✅ WhatsApp Reply Sent'
+                    );
+                }
+
+                return res.sendStatus(200);
             }
 
-            return res.sendStatus(200);
+            return res.sendStatus(404);
 
         } catch (error) {
 
@@ -121,4 +130,4 @@ module.exports = async (req, res) => {
     }
 
     return res.sendStatus(405);
-};
+}
