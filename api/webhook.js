@@ -18,6 +18,11 @@ const {
     analyzeFashionImage
 } = require('../src/services/imageAI');
 
+// 👇 NAYA IMPORT AUDIO KE LIYE 👇
+const {
+    transcribeAudio
+} = require('../src/services/audioAI');
+
 // =========================
 // DUPLICATE MESSAGE PROTECTION
 // =========================
@@ -225,6 +230,93 @@ I couldn't process the image.`
                             .status(200)
                             .end();
                     }
+
+                    // 👇 NAYA AUDIO BLOCK YAHAN AAYEGA 👇
+                    // =========================
+                    // AUDIO / VOICE NOTE MESSAGE
+                    // =========================
+
+                    if (
+                        message.type === 'audio'
+                    ) {
+
+                        console.log(
+                            '🎤 Voice Note received'
+                        );
+
+                        const mediaId =
+                            message.audio.id;
+
+                        const mimeType =
+                            message.audio.mime_type;
+
+                        const audioBase64 =
+                            await downloadWhatsAppMedia(
+                                mediaId
+                            );
+
+                        if (!audioBase64) {
+
+                            await sendWhatsAppMessage(
+
+                                from,
+
+`Sorry love 💔
+I couldn't hear your voice note properly.`
+                            );
+
+                            return res
+                                .status(200)
+                                .end();
+                        }
+
+                        const transcribedText =
+                            await transcribeAudio(
+
+                                audioBase64,
+                                mimeType
+                            );
+
+                        console.log(
+                            `🗣️ Transcribed Text: ${transcribedText}`
+                        );
+
+                        if (!transcribedText || transcribedText === '...') {
+
+                            await sendWhatsAppMessage(
+
+                                from,
+
+`I didn't quite catch that, love. Could you type it for me? 🤍`
+                            );
+
+                            return res
+                                .status(200)
+                                .end();
+                        }
+
+                        const aiReply =
+                            await generateAIResponse(
+
+                                `(Voice Note Transcript): ${transcribedText}`,
+                                from
+                            );
+
+                        console.log(
+                            `🤖 AI (Audio): ${aiReply}`
+                        );
+
+                        await sendWhatsAppMessage(
+
+                            from,
+                            aiReply
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+                    // 👆 ---------------------------- 👆
 
                     // =========================
                     // IGNORE NON-TEXT EVENTS
