@@ -10,6 +10,14 @@ const {
     isHumanMode
 } = require('../src/services/takeover');
 
+const {
+    downloadWhatsAppMedia
+} = require('../src/services/downloadMedia');
+
+const {
+    analyzeFashionImage
+} = require('../src/services/imageAI');
+
 // =========================
 // DUPLICATE MESSAGE PROTECTION
 // =========================
@@ -80,29 +88,12 @@ module.exports = async function handler(req, res) {
 
                 if (message) {
 
-                    // =========================
-                    // IGNORE NON-TEXT EVENTS
-                    // =========================
-
-                    if (
-                        message.type !== 'text'
-                    ) {
-
-                        console.log(
-                            '⚠️ Non-text event ignored'
-                        );
-
-                        return res
-                            .status(200)
-                            .end();
-                    }
+                    const messageId =
+                        message.id;
 
                     // =========================
                     // DUPLICATE PROTECTION
                     // =========================
-
-                    const messageId =
-                        message.id;
 
                     if (
                         processedMessages.has(
@@ -122,8 +113,6 @@ module.exports = async function handler(req, res) {
                     processedMessages.add(
                         messageId
                     );
-
-                    // auto cleanup after 5 min
 
                     setTimeout(() => {
 
@@ -155,6 +144,98 @@ module.exports = async function handler(req, res) {
 
                         console.log(
                             '⚠️ Ignoring self message'
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    // =========================
+                    // CHECK HUMAN MODE
+                    // =========================
+
+                    if (isHumanMode(from)) {
+
+                        console.log(
+                            '🧑 Human mode active'
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    // =========================
+                    // IMAGE MESSAGE
+                    // =========================
+
+                    if (
+                        message.type === 'image'
+                    ) {
+
+                        console.log(
+                            '🖼️ Image received'
+                        );
+
+                        const mediaId =
+                            message.image.id;
+
+                        const mimeType =
+                            message.image.mime_type;
+
+                        const imageBase64 =
+                            await downloadWhatsAppMedia(
+                                mediaId
+                            );
+
+                        if (!imageBase64) {
+
+                            await sendWhatsAppMessage(
+
+                                from,
+
+`Sorry love 💔
+I couldn't process the image.`
+                            );
+
+                            return res
+                                .status(200)
+                                .end();
+                        }
+
+                        const imageReply =
+                            await analyzeFashionImage(
+
+                                imageBase64,
+                                mimeType
+                            );
+
+                        console.log(
+                            `🧠 Image AI: ${imageReply}`
+                        );
+
+                        await sendWhatsAppMessage(
+
+                            from,
+                            imageReply
+                        );
+
+                        return res
+                            .status(200)
+                            .end();
+                    }
+
+                    // =========================
+                    // IGNORE NON-TEXT EVENTS
+                    // =========================
+
+                    if (
+                        message.type !== 'text'
+                    ) {
+
+                        console.log(
+                            '⚠️ Non-text event ignored'
                         );
 
                         return res
@@ -218,21 +299,6 @@ Our team will assist you personally very soon 🤍`
 
                         console.log(
                             '🧑 Human takeover enabled'
-                        );
-
-                        return res
-                            .status(200)
-                            .end();
-                    }
-
-                    // =========================
-                    // CHECK HUMAN MODE
-                    // =========================
-
-                    if (isHumanMode(from)) {
-
-                        console.log(
-                            '🧑 Human mode active'
                         );
 
                         return res
