@@ -1,7 +1,11 @@
-import { generateAIResponse } from '../src/services/ai.js';
-import { sendWhatsAppMessage } from '../src/services/whatsapp.js';
+const {
+    generateAIResponse
+} = require('../src/services/ai');
 
-export default async function handler(req, res) {
+const sendWhatsAppMessage =
+require('../src/services/whatsapp');
+
+module.exports = async function handler(req, res) {
 
     // =========================
     // WEBHOOK VERIFICATION

@@ -1,61 +1,41 @@
-import {
-    GoogleGenerativeAI
-} from "@google/generative-ai";
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-import {
+const {
     saveMemory,
     getMemory
-} from "../utils/memory.js";
+} = require("../utils/memory");
 
-const genAI =
-    new GoogleGenerativeAI(
-        process.env.GEMINI_API_KEY
-    );
+const genAI = new GoogleGenerativeAI(
+    process.env.GEMINI_API_KEY
+);
 
-const model =
-    genAI.getGenerativeModel({
-        model: "gemini-2.5-flash"
-    });
+const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash"
+});
 
-export async function generateAIResponse(
+async function generateAIResponse(
     userMessage,
     userNumber
 ) {
 
     try {
 
-        // =========================
-        // GET USER MEMORY
-        // =========================
-
         const previousMessages =
             getMemory(userNumber);
 
         const memoryText =
-            previousMessages.join('\n');
-
-        // =========================
-        // AI PROMPT
-        // =========================
+            previousMessages.join("\n");
 
         const prompt = `
 You are Amina,
-a beautiful and stylish Moroccan clothing brand assistant.
-
-Your personality:
-- feminine
-- elegant
-- warm
-- human-like
-- stylish
+a stylish Moroccan clothing brand sales assistant.
 
 Rules:
-- Never say you are AI
+- Talk naturally
+- Feminine elegant tone
 - Keep replies short
-- Be natural
-- Use soft emojis
-- Act like a real sales girl
-- Remember previous conversation context
+- Never say you are AI
+- Remember previous context
 
 Previous conversation:
 ${memoryText}
@@ -64,21 +44,11 @@ Customer:
 ${userMessage}
 `;
 
-        // =========================
-        // GEMINI RESPONSE
-        // =========================
-
         const result =
-            await model.generateContent(
-                prompt
-            );
+            await model.generateContent(prompt);
 
         const response =
             result.response.text();
-
-        // =========================
-        // SAVE MEMORY
-        // =========================
 
         saveMemory(
             userNumber,
@@ -94,15 +64,14 @@ ${userMessage}
 
     } catch (error) {
 
-        console.log(
-            '❌ Gemini Error'
-        );
+        console.log("❌ Gemini Error");
 
         console.log(error);
 
-        return `
-Sorry love 💔
-Something went wrong.
-`;
+        return "Sorry love 💔 Something went wrong.";
     }
 }
+
+module.exports = {
+    generateAIResponse
+};
