@@ -18,7 +18,6 @@ const {
     analyzeFashionImage
 } = require('../src/services/imageAI');
 
-// 👇 NAYA IMPORT AUDIO KE LIYE 👇
 const {
     transcribeAudio
 } = require('../src/services/audioAI');
@@ -86,10 +85,6 @@ module.exports = async function handler(req, res) {
                     body.entry?.[0]
                         ?.changes?.[0]
                         ?.value?.messages?.[0];
-
-                // =========================
-                // MESSAGE EXISTS
-                // =========================
 
                 if (message) {
 
@@ -220,6 +215,24 @@ I couldn't process the image.`
                             `🧠 Image AI: ${imageReply}`
                         );
 
+                        // =========================
+                        // HUMAN TYPING DELAY
+                        // =========================
+
+                        const typingDelay =
+
+                            Math.floor(
+                                Math.random() * 3000
+                            ) + 1500;
+
+                        await new Promise(resolve =>
+
+                            setTimeout(
+                                resolve,
+                                typingDelay
+                            )
+                        );
+
                         await sendWhatsAppMessage(
 
                             from,
@@ -231,7 +244,6 @@ I couldn't process the image.`
                             .end();
                     }
 
-                    // 👇 NAYA AUDIO BLOCK YAHAN AAYEGA 👇
                     // =========================
                     // AUDIO / VOICE NOTE MESSAGE
                     // =========================
@@ -281,13 +293,17 @@ I couldn't hear your voice note properly.`
                             `🗣️ Transcribed Text: ${transcribedText}`
                         );
 
-                        if (!transcribedText || transcribedText === '...') {
+                        if (
+                            !transcribedText ||
+                            transcribedText === '...'
+                        ) {
 
                             await sendWhatsAppMessage(
 
                                 from,
 
-`I didn't quite catch that, love. Could you type it for me? 🤍`
+`I didn't quite catch that, love 🤍
+Could you type it for me?`
                             );
 
                             return res
@@ -306,6 +322,24 @@ I couldn't hear your voice note properly.`
                             `🤖 AI (Audio): ${aiReply}`
                         );
 
+                        // =========================
+                        // HUMAN TYPING DELAY
+                        // =========================
+
+                        const typingDelay =
+
+                            Math.floor(
+                                Math.random() * 3000
+                            ) + 1500;
+
+                        await new Promise(resolve =>
+
+                            setTimeout(
+                                resolve,
+                                typingDelay
+                            )
+                        );
+
                         await sendWhatsAppMessage(
 
                             from,
@@ -316,7 +350,6 @@ I couldn't hear your voice note properly.`
                             .status(200)
                             .end();
                     }
-                    // 👆 ---------------------------- 👆
 
                     // =========================
                     // IGNORE NON-TEXT EVENTS
@@ -418,6 +451,24 @@ Our team will assist you personally very soon 🤍`
 
                     console.log(
                         `🤖 AI: ${aiReply}`
+                    );
+
+                    // =========================
+                    // HUMAN TYPING DELAY
+                    // =========================
+
+                    const typingDelay =
+
+                        Math.floor(
+                            Math.random() * 3000
+                        ) + 1500;
+
+                    await new Promise(resolve =>
+
+                        setTimeout(
+                            resolve,
+                            typingDelay
+                        )
                     );
 
                     // =========================
