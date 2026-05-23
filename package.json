@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "amina-dashboard",
   "version": "0.1.0",
   "private": true,
@@ -19,5 +20,17 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4"
+=======
+  "name": "amina-ai-bot",
+  "version": "1.0.0",
+  "main": "api/webhook.js",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.7.2",
+    "mongodb": "^7.2.0"
+>>>>>>> aa8af6ffc1ac9a8b4f9794b667d3ab533f21017a
   }
 }
