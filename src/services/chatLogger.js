@@ -1,5 +1,4 @@
-const { MongoClient } =
-    require('mongodb');
+const { MongoClient } = require('mongodb');
 
 let client;
 let db;
@@ -7,39 +6,21 @@ let db;
 // =========================
 // CONNECT DATABASE
 // =========================
-
 async function connectDB() {
-
     try {
-
         if (db) {
-
             return db;
         }
 
-        client =
-            new MongoClient(
-                process.env.MONGODB_URI
-            );
-
+        client = new MongoClient(process.env.MONGODB_URI);
         await client.connect();
-
-        db = client.db(
-            'amina_clothing'
-        );
-
-        console.log(
-            '✅ Chat Logger DB Connected'
-        );
-
+        
+        db = client.db('amina_clothing');
+        console.log('✅ Chat Logger DB Connected');
+        
         return db;
-
     } catch (error) {
-
-        console.log(
-            '❌ Chat Logger DB Error'
-        );
-
+        console.log('❌ Chat Logger DB Error');
         console.log(error);
     }
 }
@@ -47,51 +28,26 @@ async function connectDB() {
 // =========================
 // SAVE CHAT MESSAGE
 // =========================
-
-async function saveChatMessage({
-
-    userId,
-    sender,
-    message,
-    type = 'text'
-
-}) {
-
+async function saveChatMessage({ userId, sender, message, type = 'text' }) {
     try {
-
-        const db =
-            await connectDB();
-
-        const collection =
-            db.collection(
-                'messages'
-            );
+        const database = await connectDB();
+        const collection = database.collection('messages');
 
         await collection.insertOne({
-
             userId,
-
             sender,
-
             message,
-
             type,
-
-            timestamp:
-                new Date()
+            timestamp: new Date()
         });
 
     } catch (error) {
-
-        console.log(
-            '❌ Save Chat Error'
-        );
-
+        console.log('❌ Save Chat Error');
         console.log(error);
     }
 }
 
 module.exports = {
-
+    connectDB, // 👇 DASHBOARD API KE LIYE YAHAN EXPORT ADD KIYA HAI 👇
     saveChatMessage
 };
