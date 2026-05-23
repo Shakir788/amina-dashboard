@@ -6,7 +6,7 @@ const { analyzeFashionImage } = require('../src/services/imageAI');
 const { transcribeAudio } = require('../src/services/audioAI');
 
 // 👇 DATABASE LOGGER IMPORT 👇
-const { saveChatMessage } = require('../src/utils/logger'); 
+const { saveChatMessage } = require('../src/utils/chatLogger');
 
 // =========================
 // DUPLICATE MESSAGE PROTECTION
