@@ -5,6 +5,9 @@ const { downloadWhatsAppMedia } = require('../src/services/downloadMedia');
 const { analyzeFashionImage } = require('../src/services/imageAI');
 const { transcribeAudio } = require('../src/services/audioAI');
 
+// 👇 DATABASE LOGGER IMPORT 👇
+const { saveChatMessage } = require('../src/utils/logger'); 
+
 // =========================
 // DUPLICATE MESSAGE PROTECTION
 // =========================
@@ -84,15 +87,24 @@ module.exports = async function handler(req, res) {
                         const mediaId = message.image.id;
                         const mimeType = message.image.mime_type;
 
+                        // 📝 LOG: USER SENT IMAGE
+                        await saveChatMessage({ userId: from, sender: 'user', message: '[Image Received]', type: 'image' });
+
                         const imageBase64 = await downloadWhatsAppMedia(mediaId);
 
                         if (!imageBase64) {
-                            await sendWhatsAppMessage(from, `Sorry love 💔\nI couldn't process the image.`);
+                            const errorMsg = `Sorry love 💔\nI couldn't process the image.`;
+                            // 📝 LOG: AI ERROR REPLY
+                            await saveChatMessage({ userId: from, sender: 'ai', message: errorMsg, type: 'text' });
+                            await sendWhatsAppMessage(from, errorMsg);
                             return res.status(200).end();
                         }
 
                         const imageReply = await analyzeFashionImage(imageBase64, mimeType);
                         console.log(`🧠 Image AI: ${imageReply}`);
+
+                        // 📝 LOG: AI IMAGE REPLY
+                        await saveChatMessage({ userId: from, sender: 'ai', message: imageReply, type: 'text' });
 
                         // HUMAN TYPING DELAY
                         const typingDelay = Math.floor(Math.random() * 3000) + 1500;
@@ -113,20 +125,32 @@ module.exports = async function handler(req, res) {
                         const audioBase64 = await downloadWhatsAppMedia(mediaId);
 
                         if (!audioBase64) {
-                            await sendWhatsAppMessage(from, `Sorry love 💔\nI couldn't hear your voice note properly.`);
+                            const errorMsg = `Sorry love 💔\nI couldn't hear your voice note properly.`;
+                            // 📝 LOG: AI ERROR REPLY
+                            await saveChatMessage({ userId: from, sender: 'ai', message: errorMsg, type: 'text' });
+                            await sendWhatsAppMessage(from, errorMsg);
                             return res.status(200).end();
                         }
 
                         const transcribedText = await transcribeAudio(audioBase64, mimeType);
                         console.log(`🗣️ Transcribed Text: ${transcribedText}`);
 
+                        // 📝 LOG: USER SENT AUDIO (With Transcription)
+                        await saveChatMessage({ userId: from, sender: 'user', message: transcribedText || '[Unclear Audio]', type: 'audio' });
+
                         if (!transcribedText || transcribedText === '...') {
-                            await sendWhatsAppMessage(from, `I didn't quite catch that, love 🤍\nCould you type it for me?`);
+                            const errorMsg = `I didn't quite catch that, love 🤍\nCould you type it for me?`;
+                            // 📝 LOG: AI FALLBACK REPLY
+                            await saveChatMessage({ userId: from, sender: 'ai', message: errorMsg, type: 'text' });
+                            await sendWhatsAppMessage(from, errorMsg);
                             return res.status(200).end();
                         }
 
                         const aiReply = await generateAIResponse(`(Voice Note Transcript): ${transcribedText}`, from);
                         console.log(`🤖 AI (Audio): ${aiReply}`);
+
+                        // 📝 LOG: AI AUDIO REPLY
+                        await saveChatMessage({ userId: from, sender: 'ai', message: aiReply, type: 'text' });
 
                         // SMART HUMAN TYPING DELAY
                         const messageLength = aiReply.length;
@@ -136,7 +160,6 @@ module.exports = async function handler(req, res) {
 
                         await new Promise(resolve => setTimeout(resolve, typingDelay));
 
-                        // 👇 BUG FIXED HERE: Message actually sent after delay 👇
                         await sendWhatsAppMessage(from, aiReply);
                         return res.status(200).end();
                     }
@@ -158,6 +181,9 @@ module.exports = async function handler(req, res) {
                         return res.status(200).end();
                     }
 
+                    // 📝 LOG: USER SENT TEXT
+                    await saveChatMessage({ userId: from, sender: 'user', message: userMessage, type: 'text' });
+
                     // =========================
                     // HUMAN TAKEOVER KEYWORDS
                     // =========================
@@ -168,7 +194,12 @@ module.exports = async function handler(req, res) {
 
                     if (wantsHuman) {
                         enableHumanMode(from);
-                        await sendWhatsAppMessage(from, `Of course love ✨\nOur team will assist you personally very soon 🤍`);
+                        const takeoverMsg = `Of course love ✨\nOur team will assist you personally very soon 🤍`;
+                        
+                        // 📝 LOG: AI TAKEOVER REPLY
+                        await saveChatMessage({ userId: from, sender: 'ai', message: takeoverMsg, type: 'text' });
+                        
+                        await sendWhatsAppMessage(from, takeoverMsg);
                         console.log('🧑 Human takeover enabled');
                         return res.status(200).end();
                     }
@@ -181,6 +212,9 @@ module.exports = async function handler(req, res) {
                     // =========================
                     const aiReply = await generateAIResponse(userMessage, from);
                     console.log(`🤖 AI: ${aiReply}`);
+
+                    // 📝 LOG: AI TEXT REPLY
+                    await saveChatMessage({ userId: from, sender: 'ai', message: aiReply, type: 'text' });
 
                     // =========================
                     // HUMAN TYPING DELAY
