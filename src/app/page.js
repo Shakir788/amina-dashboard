@@ -90,7 +90,7 @@ export default function Home() {
                 <span className="text-xs text-gray-400">
 
                   {new Date(
-                    msg.createdAt
+                   msg.timestamp
                   ).toLocaleTimeString()}
 
                 </span>
